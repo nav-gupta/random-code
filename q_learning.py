@@ -36,6 +36,9 @@ gamma = 0.9
 episodes = 1000
 
 prevQ = 0.0
+for x in range(12):
+    for y in range(4):
+        prevQ += Q[x, y]
 curQ = 0.0
 Qs = []
 
@@ -54,6 +57,7 @@ def generate_resultant_state(state, action):
 def generate_legal_actions(state):
     current_rewards = r[state, :]
     legal_moves = np.where(current_rewards >= 0)[1]
+    legal_moves = np.squeeze(np.asarray(legal_moves))
     return legal_moves
 
 
@@ -66,13 +70,13 @@ def choose_random_action(available_actions):
 def update_Q(current_state, next_state, action):
     rsa = r[current_state, action]
     max_val = Q[next_state, :].max()
+    if max_val < 0:
+        max_val = 0
     new_q = rsa + (gamma * max_val)
     Q[current_state, action] = new_q
 
 def plot(Qs):
-    print(Qs)
     iterations = [x for x in range(episodes)]
-    print(iterations)
     plt.plot(iterations, Qs)
     plt.show()
 

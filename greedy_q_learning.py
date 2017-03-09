@@ -20,7 +20,6 @@ r = np.matrix([[-1, 0, -1, 0],
 # print(r)
 #Q = np.matrix(np.zeros([12, 4]))
 Q = np.random.rand(12, 4)
-print(Q)
 for x in range(12):
     for y in range(4):
         if r[x, y] == -1:
@@ -35,10 +34,10 @@ goal_state = 5
 gamma = 0.9
 
 # Greediness parameter
-epsilon = 0.0
+epsilon = 0.2
 
 # num of episodes
-episodes = 100
+episodes = 1000
 
 prevQ = 0.0
 curQ = 0.0
@@ -59,6 +58,7 @@ def generate_resultant_state(state, action):
 def generate_legal_actions(state):
     current_rewards = r[state, :]
     legal_moves = np.where(current_rewards >= 0)[1]
+    legal_moves = np.squeeze(np.asarray(legal_moves))
     return legal_moves
 
 
@@ -72,11 +72,10 @@ def choose_max_value_action(current_state, available_actions):
     next_best_action = available_actions[0]
     max_val = 0
     for action in available_actions:
-        rsa = r[current_state, action]
-        next_state = generate_resultant_state(current_state, action)
-        val = Q[next_state, :].max()
-        if rsa + val > max_val:
+        temp_val = Q[current_state, action]
+        if temp_val > max_val:
             next_best_action = action
+            max_val = temp_val
     return next_best_action
 
 
@@ -100,7 +99,6 @@ for episode in range(episodes):
         else:
             random_legal_action = choose_max_value_action(current_state, legal_actions)
         next_state = generate_resultant_state(current_state, random_legal_action)
-        print(current_state, " ", random_legal_action, " ", next_state)
         update_Q(current_state, next_state, random_legal_action, )
         current_state = next_state
     for x in range(12):

@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from random import randint
 import matplotlib.pyplot as plt
 
@@ -18,6 +19,7 @@ r = np.matrix([[-1, 0, -1, 0],
 
 # print(r)
 V = np.matrix(np.zeros([12, 4]))
+estimated_r = np.matrix(np.zeros([12, 4]))
 Q = np.matrix(np.zeros([12, 4]))
 # print(Q)
 for x in range(12):
@@ -37,7 +39,7 @@ gamma = 0.9
 probability = 0.70
 
 # num of episodes
-episodes = 1000
+episodes = 10000
 
 prevQ = 0.0
 curQ = 0.0
@@ -58,55 +60,45 @@ def generate_resultant_state(state, action):
 def generate_legal_actions(state):
     current_rewards = r[state, :]
     legal_moves = np.where(current_rewards >= 0)[1]
+    legal_moves = np.squeeze(np.asarray(legal_moves))
     return legal_moves
 
 
 # choosing random action out of available actions
-def choose_random_action(available_actions):
+def update_Q(legal_actions):
+    reward = 0.0
+    available_actions = legal_actions
+    final_action = legal_actions[0]
     next_action = np.random.choice(available_actions)
-    return next_action
-
-
-def update_Q(current_state, next_state, action, legal_actions):
-    rsa = r[current_state, action]
-    estimated_rsa = rsa / (V[current_state, action])
-    max_val = 0
-    for action in legal_actions:
-        next_probable_state = generate_resultant_state(current_state, action)
-        if next_probable_state == next_state:
-            max_val += probability*(Q[next_state, :].max())
-        else:
-            max_val += (((1.0 - probability) / (len(legal_actions) - 1)))*(Q[next_probable_state, :].max())
-    new_q = estimated_rsa + (gamma * max_val)
-    alpha = 1.0 / (1.0 + V[current_state, action])
-    Q[current_state, action] = (1.0 - alpha)*Q[current_state, action] + alpha*new_q
+    remaining_actions = np.delete(available_actions, np.argwhere(available_actions == next_action))
+    rand = random.uniform(0, 1)
+    if rand <= 0.7:
+        final_action =  next_action
+    else:
+        num = rand - 0.7
+        den = (1.0 - 0.7) / (remaining_actions.size)
+        final_action = remaining_actions[num / den]
+    next_state = generate_resultant_state(current_state, final_action)
+    if next_state == goal_state:
+        reward = 100.0
+    r[current_state, next_action] += reward
+    V[current_state, next_action] += 1
+    estimated_r[current_state, next_action] = (r[current_state, next_action] / V[current_state, next_action])
+    new_q = reward + (gamma * (Q[next_state, :].max()))
+    alpha = 1.0 / (1.0 + V[current_state, next_action])
+    Q[current_state, next_action] = (1.0 - alpha)*Q[current_state, next_action] + alpha*new_q
+    return next_state
 
 def plot(Qs):
     iterations = [x for x in range(episodes)]
     plt.plot(iterations, Qs)
     plt.show()
 
-def evaluate_reward(current_state, next_state, legal_actions):
-    num_actions = len(legal_actions)
-    if next_state == goal_state:
-        return probability*100
-    else:
-        for action in legal_actions:
-            next_probable_state = generate_resultant_state(current_state, action)
-            if next_probable_state == goal_state:
-                return ((1.0 - probability) / (num_actions - 1))*100
-        return 0
-
 for episode in range(episodes):
     current_state = randint(0, n_states - 1)
     while current_state != goal_state:
         legal_actions = generate_legal_actions(current_state)
-        random_legal_action = choose_random_action(legal_actions)
-        next_state = generate_resultant_state(current_state, random_legal_action)
-        reward = evaluate_reward(current_state, next_state, legal_actions)
-        r[current_state, random_legal_action] += reward
-        V[current_state, random_legal_action] += 1
-        update_Q(current_state, next_state, random_legal_action, legal_actions)
+        next_state = update_Q(legal_actions)
         current_state = next_state
     for x in range(12):
         for y in range(4):
@@ -117,5 +109,4 @@ for episode in range(episodes):
 
 print(Q)
 plot(Qs)
-print(r)
-print(V)
+print(estimated_r)
